@@ -68,10 +68,83 @@ export const usePatientsStore = defineStore('patients', () => {
 })
 
 const MOCK_PATIENTS = [
-  { id: 'PAT-2024-089', lastName: 'MARTIN', firstName: 'Jean-Pierre', lastSession: '2024-03-14', nir: '1 75 03 75 108 001 20' },
-  { id: 'PAT-2023-110', lastName: 'BERNARD', firstName: 'Marie', lastSession: '2024-02-02', nir: '2 83 07 69 123 004 45' },
-  { id: 'PAT-2024-001', lastName: 'DUBOIS', firstName: 'Thomas', lastSession: null, nir: '1 92 11 44 078 002 63' },
-  { id: 'PAT-2022-445', lastName: 'LEFEBVRE', firstName: 'Sophie', lastSession: '2023-11-28', nir: '2 68 09 13 055 007 81' },
-  { id: 'PAT-2023-203', lastName: 'MOREAU', firstName: 'Lucas', lastSession: '2024-01-15', nir: '1 01 01 75 056 003 27' },
-  { id: 'PAT-2021-078', lastName: 'SIMON', firstName: 'Claire', lastSession: '2023-08-22', nir: '2 95 04 67 112 009 54' },
+  { 
+    id: 'PAT-2026-042', 
+    lastName: 'DUPONT', 
+    firstName: 'Jean', 
+    lastSession: '2026-04-22', 
+    nir: '1 85 03 75 108 001 20',
+    profil: {
+      age: '38',
+      taille: '175',
+      poids: '78',
+      kmSemaine: '45',
+      niveauPratique: 'intermediaire'
+    },
+    pathologie: {
+      type: "Lombalgie (douleur lombaire à l'effort)",
+      cote: 'bilateral',
+      severite: 'moderee'
+    },
+    chaussure: {
+      marque: 'Brooks',
+      modele: 'Ghost 16',
+      drop: 12,
+      stabilite: 'neutre',
+      amorti: 'maximal',
+      poidsType: 'leger',
+      dynamisme: 'faible'
+    }
+  },
+  { 
+    id: 'PAT-2024-089', 
+    lastName: 'MARTIN', 
+    firstName: 'Jean-Pierre', 
+    lastSession: '2024-03-14', 
+    nir: '1 75 03 75 108 001 20',
+    profil: {
+      age: '45',
+      taille: '182',
+      poids: '82',
+      kmSemaine: '30',
+      niveauPratique: 'avance'
+    },
+    chaussure: {
+      marque: 'Asics',
+      modele: 'Nimbus 25',
+      drop: 8,
+      stabilite: 'neutre',
+      amorti: 'maximal',
+      poidsType: 'moyen',
+      dynamisme: 'moyen'
+    }
+  },
+  { 
+    id: 'PAT-2023-110', 
+    lastName: 'BERNARD', 
+    firstName: 'Marie', 
+    lastSession: '2024-02-02', 
+    nir: '2 83 07 69 123 004 45',
+    profil: {
+      age: '29',
+      taille: '165',
+      poids: '58',
+      kmSemaine: '20',
+      niveauPratique: 'debutant'
+    }
+  },
+  { 
+    id: 'PAT-2024-001', 
+    lastName: 'DUBOIS', 
+    firstName: 'Thomas', 
+    lastSession: null, 
+    nir: '1 92 11 44 078 002 63',
+    profil: {
+      age: '34',
+      taille: '178',
+      poids: '75',
+      kmSemaine: '50',
+      niveauPratique: 'competiteur'
+    }
+  }
 ]
