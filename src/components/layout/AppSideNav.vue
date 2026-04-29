@@ -2,50 +2,109 @@
 import { useRoute } from 'vue-router'
 import { computed } from 'vue'
 
+const props = defineProps({
+  badgePatient: {
+    type: String,
+    default: null
+  },
+  nouvelleSessionActif: {
+    type: Boolean,
+    default: false
+  }
+})
+
 const route = useRoute()
+const isPatientManagement = computed(() => route.path === '/patients')
 
 const steps = [
-  { id: 1, name: 'Recherche du patient', icon: 'person_search', route: '/patients' },
-  { id: 2, name: 'Analyse vidéo', icon: 'videocam', locked: true },
-  { id: 3, name: 'Génération protocole', icon: 'psychology', locked: true },
-  { id: 4, name: 'Rapport PDF', icon: 'description', locked: true },
+  { id: 1, name: 'Saisie patient', status: 'En cours...', active: true },
+  { id: 2, name: 'Analyse', status: 'En attente', locked: true },
+  { id: 3, name: 'Rapport', status: 'En attente', locked: true },
+  { id: 4, name: 'Recommandations', status: 'En attente', locked: true },
 ]
-
-const visibleSteps = computed(() => {
-  // On ne montre que l'étape active pour l'écran actuel
-  return steps.filter(step => step.route && route.path.startsWith(step.route))
-})
 </script>
 
 <template>
-  <nav class="w-64 border-r border-outline-variant bg-surface-container-lowest flex flex-col">
-    <div class="p-8 pb-4">
-      <div class="mb-8">
-        <img src="/logo-aria.png" alt="ARIA Logo" class="h-36 w-auto object-contain">
+  <nav class="w-64 border-r border-slate-200 bg-white flex flex-col h-screen">
+    <!-- Header: Logo & Slogan -->
+    <div class="pt-10 pb-8 flex flex-col items-center">
+      <img src="/logo-aria.png" alt="ARIA Logo" class="h-28 w-auto object-contain mb-6">
+      <div class="text-[9px] uppercase tracking-[0.2em] font-bold text-[#0D2B6B]/40 text-center leading-relaxed px-4">
+        Le analyse et retour /<br>intelligent sur l'allure
       </div>
     </div>
 
-    <div class="flex-1 flex flex-col gap-1 px-4">
-      <div 
-        v-for="step in visibleSteps" 
-        :key="step.id"
-        :class="[
-          'flex items-center gap-4 px-4 py-3 rounded-lg transition-all bg-primary/5 text-primary'
-        ]"
-      >
-        <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">
-          {{ step.icon }}
-        </span>
-        <div class="flex flex-col">
-          <span class="text-[10px] uppercase tracking-widest font-bold opacity-70">Étape {{ step.id }}</span>
-          <span class="text-sm font-semibold">{{ step.name }}</span>
+    <!-- Case 1: Patient Management (Search Mode) -->
+    <div v-if="isPatientManagement" class="flex-1 mt-6">
+      <div class="relative flex items-center bg-[#F1F5F9] border-l-4 border-[#0D2B6B] py-3 px-6 mx-3 rounded-r-md">
+        <span class="material-symbols-outlined text-[#0D2B6B] mr-3 text-xl font-bold">search</span>
+        <span class="text-[#0D2B6B] font-bold text-xs tracking-tight">Recherche du patient</span>
+      </div>
+    </div>
+
+    <!-- Case 2: Session Setup / Steps Tracker -->
+    <template v-else>
+      <!-- Active Patient Card -->
+      <div v-if="badgePatient" class="mx-4 mb-10 p-4 rounded-xl border border-slate-100 bg-[#F8FAFC]">
+        <div class="text-[8px] uppercase tracking-widest font-bold text-slate-400 mb-1">Patient</div>
+        <div class="text-xs font-bold text-[#0D2B6B] truncate">{{ badgePatient }}</div>
+      </div>
+
+      <!-- Step Tracker -->
+      <div class="flex-1 px-6 relative">
+        <!-- Vertical Line -->
+        <div class="absolute left-[43px] top-6 bottom-6 w-0.5 bg-slate-100"></div>
+
+        <div class="flex flex-col gap-8">
+          <div v-for="step in steps" :key="step.id" class="flex items-center gap-5 relative z-10">
+            <!-- Icon Circle -->
+            <div 
+              class="w-10 h-10 rounded-full flex items-center justify-center shadow-sm"
+              :class="step.active ? 'bg-[#0D2B6B] text-white shadow-[#0D2B6B]/20' : 'bg-slate-100 text-slate-400'"
+            >
+              <span class="material-symbols-outlined text-lg">
+                {{ step.active ? 'sync' : 'lock' }}
+              </span>
+            </div>
+
+            <!-- Label & Status -->
+            <div class="flex flex-col">
+              <span class="text-[11px] font-bold uppercase tracking-wider" :class="step.active ? 'text-[#0D2B6B]' : 'text-slate-300'">
+                {{ step.name }}
+              </span>
+              <span class="text-[9px] font-medium" :class="step.active ? 'text-blue-400' : 'text-slate-300'">
+                {{ step.status }}
+              </span>
+            </div>
+          </div>
         </div>
       </div>
+    </template>
+
+    <!-- Bottom Actions -->
+    <div class="px-4 py-4 flex flex-col gap-1">
+      <button 
+        class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-medium transition-all"
+        :class="nouvelleSessionActif ? 'text-[#0D2B6B] hover:bg-slate-50' : 'text-slate-300 cursor-not-allowed'"
+      >
+        <span class="material-symbols-outlined text-lg">add</span>
+        Nouvelle session
+      </button>
+      <button 
+        class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-medium text-slate-300 cursor-not-allowed"
+      >
+        <span class="material-symbols-outlined text-lg">lock</span>
+        Historique patient
+      </button>
     </div>
 
-    <div class="p-8">
-      <div class="text-[10px] uppercase tracking-widest font-bold text-on-surface-variant/50">
-        MVP v2.0.0 · ARIA-FT
+    <!-- Footer -->
+    <div class="px-8 pb-8 flex flex-col gap-0.5">
+      <div class="text-[8px] uppercase tracking-widest font-bold text-slate-300">
+        MVP v2.0 · PFE
+      </div>
+      <div class="text-[8px] uppercase tracking-widest font-bold text-slate-300">
+        ARIA-ft · MedGemma 4B
       </div>
     </div>
   </nav>

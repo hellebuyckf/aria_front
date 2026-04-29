@@ -4,6 +4,8 @@
 
 @theme {
   --color-primary: #2A5C82;
+  --color-primary-dark: #0D3878;
+  --color-accent: #5EC8F2;
   --color-surface: #f7f9fb;
   --color-surface-container-lowest: #ffffff;
   --color-surface-container-low: #f2f4f6;

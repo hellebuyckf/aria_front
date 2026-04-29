@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
+import { usePatientsStore } from '../stores/patients'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -23,7 +24,13 @@ const router = createRouter({
     {
       path: '/session/:patientId/setup',
       name: 'session-setup',
-      component: () => import('../views/Saisie.vue'), // Temporary mapped for MVP
+      component: () => import('../views/SessionSetupView.vue'),
+      meta: { requiresAuth: true, requiresActivePatient: true }
+    },
+    {
+      path: '/session/:sessionId/analysis',
+      name: 'analysis',
+      component: () => import('../views/Analyse.vue'), // Mock view
       meta: { requiresAuth: true }
     }
   ]
@@ -31,8 +38,16 @@ const router = createRouter({
 
 router.beforeEach((to) => {
   const auth = useAuthStore()
+  const patients = usePatientsStore()
+
+  // Authentication guard
   if (to.meta.requiresAuth && !auth.isAuthenticated) {
     return { name: 'patients' } // Simplified for MVP mock
+  }
+
+  // Active patient guard for session setup
+  if (to.meta.requiresActivePatient && !patients.activePatient) {
+    return { name: 'patients' }
   }
 })
 
