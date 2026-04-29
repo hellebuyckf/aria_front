@@ -59,7 +59,10 @@ const onAnnuler = () => {
                   :patient-id="sessionStore.patientId || ''"
                   v-model="sessionStore.profil"
                 />
-                <ProfilChaussureCard v-model="sessionStore.chaussure" />
+                <ProfilChaussureCard 
+                  v-model="sessionStore.chaussure" 
+                  :gender="sessionStore.profil.sexe"
+                />
               </div>
 
               <!-- Right Column: Pathology, Videos & Training -->

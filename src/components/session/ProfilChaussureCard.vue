@@ -1,18 +1,67 @@
 <script setup>
+import { ref, watch, onMounted } from 'vue'
+import { useShoeStore } from '../../stores/shoes'
+import { useSessionStore } from '../../stores/session'
+import { mapShoeToUI } from '../../utils/shoeMapping'
+
 const props = defineProps({
   modelValue: {
     type: Object,
     required: true
+  },
+  gender: {
+    type: String,
+    default: ''
   }
 })
 
 const emit = defineEmits(['update:modelValue'])
 
+const shoeStore = useShoeStore()
+const sessionStore = useSessionStore()
+
+const modelSearch = ref(props.modelValue.modele)
+const showSuggestions = ref(false)
+const suggestions = ref([])
+
+onMounted(() => {
+  shoeStore.loadDatabase()
+})
+
 const updateField = (field, value) => {
   emit('update:modelValue', { ...props.modelValue, [field]: value })
 }
 
-const brands = ["Brooks", "Asics", "Nike", "Hoka", "Saucony"]
+const onModelInput = (e) => {
+  const val = e.target.value
+  modelSearch.value = val
+  updateField('modele', val)
+  
+  if (val.length > 1) {
+    suggestions.value = shoeStore.search(val, props.modelValue.marque, props.gender)
+    showSuggestions.value = true
+  } else {
+    showSuggestions.value = false
+  }
+}
+
+const selectShoe = (shoe) => {
+  const mapped = mapShoeToUI(shoe)
+  emit('update:modelValue', mapped)
+  modelSearch.value = mapped.modele
+  showSuggestions.value = false
+}
+
+const onVider = () => {
+  sessionStore.resetChaussure()
+  modelSearch.value = ''
+}
+
+// Sync modelSearch if modelValue.modele changes externally (e.g. on reset)
+watch(() => props.modelValue.modele, (newVal) => {
+  modelSearch.value = newVal
+})
+
 const drops = [0, 4, 8, 10, 12]
 const stabilities = [
   { id: 'neutre', label: 'Neutre' },
@@ -37,9 +86,16 @@ const dynamisms = [
 </script>
 
 <template>
-  <div class="p-6 rounded-2xl bg-white border border-outline-variant/50 shadow-sm">
-    <div class="mb-6">
+  <div class="p-6 rounded-2xl bg-white border border-outline-variant/50 shadow-sm relative">
+    <div class="mb-6 flex items-center justify-between">
       <h2 class="text-xs font-bold uppercase tracking-widest text-on-surface">Profil Chaussure</h2>
+      <button 
+        @click="onVider"
+        class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider text-red-500 hover:bg-red-50 transition-all border border-red-100"
+      >
+        <span class="material-symbols-outlined text-sm">delete</span>
+        Vider
+      </button>
     </div>
 
     <div class="grid grid-cols-3 gap-6">
@@ -47,33 +103,47 @@ const dynamisms = [
       <div class="flex flex-col gap-1.5">
         <label class="text-xs font-medium text-on-surface px-1">Marque</label>
         <div class="relative">
-          <select 
+          <input 
+            type="text"
             :value="modelValue.marque"
-            @change="updateField('marque', $event.target.value)"
-            class="w-full h-11 px-4 rounded-xl border border-outline-variant/50 bg-white text-sm focus:border-primary outline-none transition-all appearance-none cursor-pointer"
-          >
-            <option value="" disabled selected>Marque</option>
-            <option v-for="b in brands" :key="b" :value="b">{{ b }}</option>
-          </select>
-          <span class="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none">expand_more</span>
+            @input="updateField('marque', $event.target.value)"
+            placeholder="Ex: Asics"
+            class="w-full h-11 px-4 rounded-xl border border-outline-variant/50 bg-white text-sm focus:border-primary outline-none transition-all"
+            list="brand-list"
+          />
+          <datalist id="brand-list">
+            <option v-for="b in shoeStore.brands" :key="b" :value="b" />
+          </datalist>
         </div>
       </div>
 
       <!-- Modèle -->
-      <div class="flex flex-col gap-1.5">
+      <div class="flex flex-col gap-1.5 relative">
         <label class="text-xs font-medium text-on-surface px-1">Modèle</label>
-        <div class="relative">
-          <select 
-            :value="modelValue.modele"
-            @change="updateField('modele', $event.target.value)"
-            class="w-full h-11 px-4 rounded-xl border border-outline-variant/50 bg-white text-sm focus:border-primary outline-none transition-all appearance-none cursor-pointer"
+        <input 
+          type="text"
+          :value="modelSearch"
+          @input="onModelInput"
+          @blur="setTimeout(() => showSuggestions = false, 200)"
+          placeholder="Ex: Nimbus 25"
+          class="w-full h-11 px-4 rounded-xl border border-outline-variant/50 bg-white text-sm focus:border-primary outline-none transition-all"
+        />
+        
+        <!-- Suggestions Dropdown -->
+        <div v-if="showSuggestions && suggestions.length > 0" class="absolute top-full left-0 right-0 z-50 mt-1 bg-white border border-outline-variant/50 rounded-xl shadow-lg max-h-60 overflow-y-auto">
+          <div 
+            v-for="shoe in suggestions" 
+            :key="shoe.url"
+            @mousedown="selectShoe(shoe)"
+            class="px-4 py-3 hover:bg-surface-container-low cursor-pointer border-b border-outline-variant/30 last:border-0"
           >
-            <option value="" disabled selected>Modèle</option>
-            <option value="Ghost 16">Ghost 16</option>
-            <option value="Ghost 15">Ghost 15</option>
-            <option value="Adrenaline GTS">Adrenaline GTS</option>
-          </select>
-          <span class="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none">expand_more</span>
+            <div class="text-xs font-bold text-on-surface">{{ shoe.name }}</div>
+            <div class="text-[10px] text-on-surface-variant flex gap-2">
+              <span>{{ shoe.brand }}</span>
+              <span>·</span>
+              <span>{{ shoe.Drop }}</span>
+            </div>
+          </div>
         </div>
       </div>
 

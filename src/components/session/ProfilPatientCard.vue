@@ -77,8 +77,26 @@ const levels = [
         />
       </div>
 
+      <!-- Sexe -->
+      <div class="flex flex-col gap-1.5">
+        <label class="text-xs font-medium text-on-surface px-1">Sexe</label>
+        <div class="flex gap-2">
+          <button 
+            v-for="gender in ['Homme', 'Femme']" 
+            :key="gender"
+            @click="updateField('sexe', gender)"
+            class="flex-1 h-11 rounded-xl text-sm font-medium transition-all border"
+            :class="modelValue.sexe === gender 
+              ? 'bg-blue-50 border-blue-400 text-blue-600 shadow-sm' 
+              : 'bg-white border-outline-variant/50 text-on-surface hover:bg-surface-container-low'"
+          >
+            {{ gender }}
+          </button>
+        </div>
+      </div>
+
       <!-- Km / Semaine -->
-      <div class="col-span-1 flex flex-col gap-1.5">
+      <div class="flex flex-col gap-1.5">
         <label class="text-xs font-medium text-on-surface px-1">Km moyen par semaine</label>
         <input 
           type="number" 

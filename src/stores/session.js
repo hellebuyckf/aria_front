@@ -11,6 +11,7 @@ export const useSessionStore = defineStore('session', () => {
     age: '',
     taille: '',
     poids: '',
+    sexe: '',
     kmSemaine: '',
     niveauPratique: 'intermediaire'
   })
@@ -81,6 +82,18 @@ export const useSessionStore = defineStore('session', () => {
     statut.value = 'analyse'
   }
 
+  function resetChaussure() {
+    chaussure.value = {
+      marque: '',
+      modele: '',
+      drop: '',
+      stabilite: '',
+      amorti: '',
+      poidsType: '',
+      dynamisme: ''
+    }
+  }
+
   function reset() {
     sessionId.value = null
     patientId.value = null
@@ -90,6 +103,7 @@ export const useSessionStore = defineStore('session', () => {
       age: '',
       taille: '',
       poids: '',
+      sexe: '',
       kmSemaine: '',
       niveauPratique: 'intermediaire'
     }
@@ -133,6 +147,7 @@ export const useSessionStore = defineStore('session', () => {
     connecterStrava,
     connecterGarmin,
     lancerAnalyse,
+    resetChaussure,
     reset
   }
 })
