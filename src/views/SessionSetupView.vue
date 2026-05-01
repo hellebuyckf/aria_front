@@ -41,6 +41,7 @@ const onAnnuler = () => {
     <AppSideNav 
       :badge-patient="sessionStore.badgeSidebar"
       :nouvelle-session-actif="true"
+      :active-step="1"
     />
 
     <div class="flex-1 flex flex-col min-w-0">
@@ -59,7 +60,10 @@ const onAnnuler = () => {
                   :patient-id="sessionStore.patientId || ''"
                   v-model="sessionStore.profil"
                 />
-                <ProfilChaussureCard v-model="sessionStore.chaussure" />
+                <ProfilChaussureCard 
+                  v-model="sessionStore.chaussure" 
+                  :gender="sessionStore.profil.sexe"
+                />
               </div>
 
               <!-- Right Column: Pathology, Videos & Training -->

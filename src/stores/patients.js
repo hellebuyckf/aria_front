@@ -78,6 +78,7 @@ const MOCK_PATIENTS = [
       age: '38',
       taille: '175',
       poids: '78',
+      sexe: 'Homme',
       kmSemaine: '45',
       niveauPratique: 'intermediaire'
     },
@@ -106,6 +107,7 @@ const MOCK_PATIENTS = [
       age: '45',
       taille: '182',
       poids: '82',
+      sexe: 'Homme',
       kmSemaine: '30',
       niveauPratique: 'avance'
     },
@@ -129,6 +131,7 @@ const MOCK_PATIENTS = [
       age: '29',
       taille: '165',
       poids: '58',
+      sexe: 'Femme',
       kmSemaine: '20',
       niveauPratique: 'debutant'
     }
@@ -143,6 +146,7 @@ const MOCK_PATIENTS = [
       age: '34',
       taille: '178',
       poids: '75',
+      sexe: 'Homme',
       kmSemaine: '50',
       niveauPratique: 'competiteur'
     }

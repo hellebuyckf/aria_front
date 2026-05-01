@@ -1,18 +1,105 @@
 <script setup>
+import { ref, watch, onMounted } from 'vue'
+import { useShoeStore } from '../../stores/shoes'
+import { useSessionStore } from '../../stores/session'
+import { mapShoeToUI, mapGenderToDB } from '../../utils/shoeMapping'
+
 const props = defineProps({
   modelValue: {
     type: Object,
     required: true
+  },
+  gender: {
+    type: String,
+    default: ''
   }
 })
 
 const emit = defineEmits(['update:modelValue'])
 
+const shoeStore = useShoeStore()
+const sessionStore = useSessionStore()
+
+const modelSearch = ref(props.modelValue.modele)
+const brandSearch = ref(props.modelValue.marque)
+const activeDropdown = ref(null) // 'brand', 'model', or null
+const suggestions = ref([])
+const brandSuggestions = ref([])
+
+onMounted(() => {
+  shoeStore.loadDatabase()
+})
+
 const updateField = (field, value) => {
   emit('update:modelValue', { ...props.modelValue, [field]: value })
 }
 
-const brands = ["Brooks", "Asics", "Nike", "Hoka", "Saucony"]
+const onBrandInput = (e) => {
+  const val = e.target.value
+  brandSearch.value = val
+  activeDropdown.value = 'brand'
+  
+  if (val.length > 0) {
+    brandSuggestions.value = shoeStore.brands.filter(b => 
+      b.toLowerCase().includes(val.toLowerCase())
+    ).slice(0, 10)
+  } else {
+    brandSuggestions.value = shoeStore.brands.slice(0, 10)
+  }
+}
+
+const selectBrand = (brand) => {
+  updateField('marque', brand)
+  brandSearch.value = brand
+  activeDropdown.value = null
+}
+
+const onModelInput = (e) => {
+  const val = e.target.value
+  modelSearch.value = val
+  activeDropdown.value = 'model'
+  
+  // Use existing store search with brand and gender
+  const mappedGender = mapGenderToDB(props.gender)
+  suggestions.value = shoeStore.search(val, props.modelValue.marque, mappedGender)
+}
+
+const selectShoe = (shoe) => {
+  const mapped = mapShoeToUI(shoe)
+  emit('update:modelValue', mapped)
+  modelSearch.value = mapped.modele
+  brandSearch.value = mapped.marque
+  activeDropdown.value = null
+}
+
+const onVider = () => {
+  sessionStore.resetChaussure()
+  modelSearch.value = ''
+  brandSearch.value = ''
+}
+
+// Sync searches if modelValue changes externally
+watch(() => props.modelValue.marque, (newVal, oldVal) => {
+  brandSearch.value = newVal
+  
+  // US3: Reset model and technical fields when brand changes
+  if (newVal !== oldVal) {
+    emit('update:modelValue', {
+      marque: newVal,
+      modele: '',
+      drop: '',
+      stabilite: '',
+      amorti: '',
+      poidsType: '',
+      dynamisme: ''
+    })
+  }
+})
+
+watch(() => props.modelValue.modele, (newVal) => {
+  modelSearch.value = newVal
+})
+
 const drops = [0, 4, 8, 10, 12]
 const stabilities = [
   { id: 'neutre', label: 'Neutre' },
@@ -37,43 +124,87 @@ const dynamisms = [
 </script>
 
 <template>
-  <div class="p-6 rounded-2xl bg-white border border-outline-variant/50 shadow-sm">
-    <div class="mb-6">
+  <div class="p-6 rounded-2xl bg-white border border-outline-variant/50 shadow-sm relative">
+    <div class="mb-6 flex items-center justify-between">
       <h2 class="text-xs font-bold uppercase tracking-widest text-on-surface">Profil Chaussure</h2>
+      <button 
+        @click="onVider"
+        class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider text-red-500 hover:bg-red-50 transition-all border border-red-100"
+      >
+        <span class="material-symbols-outlined text-sm">delete</span>
+        Vider
+      </button>
     </div>
 
     <div class="grid grid-cols-3 gap-6">
       <!-- Marque -->
-      <div class="flex flex-col gap-1.5">
+      <div class="flex flex-col gap-1.5 relative">
         <label class="text-xs font-medium text-on-surface px-1">Marque</label>
         <div class="relative">
-          <select 
-            :value="modelValue.marque"
-            @change="updateField('marque', $event.target.value)"
-            class="w-full h-11 px-4 rounded-xl border border-outline-variant/50 bg-white text-sm focus:border-primary outline-none transition-all appearance-none cursor-pointer"
+          <input 
+            type="text"
+            v-model="brandSearch"
+            @input="onBrandInput"
+            @focus="onBrandInput"
+            @blur="setTimeout(() => activeDropdown = (activeDropdown === 'brand' ? null : activeDropdown), 200)"
+            placeholder="Ex: Asics"
+            class="w-full h-11 px-4 rounded-xl border border-outline-variant/50 bg-white text-sm focus:border-primary outline-none transition-all"
+          />
+          <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-xl">
+            {{ activeDropdown === 'brand' ? 'expand_less' : 'expand_more' }}
+          </span>
+        </div>
+        
+        <!-- Brand Suggestions -->
+        <div v-if="activeDropdown === 'brand' && brandSuggestions.length > 0" class="absolute top-full left-0 right-0 z-50 mt-1 bg-white border border-outline-variant/50 rounded-xl shadow-lg max-h-60 overflow-y-auto">
+          <div 
+            v-for="brand in brandSuggestions" 
+            :key="brand"
+            @mousedown="selectBrand(brand)"
+            class="px-4 py-3 hover:bg-surface-container-low cursor-pointer border-b border-outline-variant/30 last:border-0 text-xs font-medium text-on-surface"
           >
-            <option value="" disabled selected>Marque</option>
-            <option v-for="b in brands" :key="b" :value="b">{{ b }}</option>
-          </select>
-          <span class="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none">expand_more</span>
+            {{ brand }}
+          </div>
         </div>
       </div>
 
       <!-- Modèle -->
-      <div class="flex flex-col gap-1.5">
-        <label class="text-xs font-medium text-on-surface px-1">Modèle</label>
+      <div class="flex flex-col gap-1.5 relative">
+        <div class="flex items-center justify-between px-1">
+          <label class="text-xs font-medium text-on-surface">Modèle</label>
+          <span v-if="!gender" class="text-[10px] font-medium text-red-500 italic">Sexe requis</span>
+        </div>
         <div class="relative">
-          <select 
-            :value="modelValue.modele"
-            @change="updateField('modele', $event.target.value)"
-            class="w-full h-11 px-4 rounded-xl border border-outline-variant/50 bg-white text-sm focus:border-primary outline-none transition-all appearance-none cursor-pointer"
+          <input 
+            type="text"
+            v-model="modelSearch"
+            @input="onModelInput"
+            @focus="onModelInput"
+            @blur="setTimeout(() => activeDropdown = (activeDropdown === 'model' ? null : activeDropdown), 200)"
+            :disabled="!gender"
+            placeholder="Ex: Nimbus 25"
+            class="w-full h-11 px-4 rounded-xl border border-outline-variant/50 bg-white text-sm focus:border-primary outline-none transition-all disabled:opacity-50 disabled:bg-surface-container-low cursor-text disabled:cursor-not-allowed"
+          />
+          <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-xl">
+            {{ activeDropdown === 'model' ? 'expand_less' : 'expand_more' }}
+          </span>
+        </div>
+        
+        <!-- Suggestions Dropdown -->
+        <div v-if="activeDropdown === 'model' && suggestions.length > 0" class="absolute top-full left-0 right-0 z-50 mt-1 bg-white border border-outline-variant/50 rounded-xl shadow-lg max-h-60 overflow-y-auto">
+          <div 
+            v-for="shoe in suggestions" 
+            :key="shoe.url"
+            @mousedown="selectShoe(shoe)"
+            class="px-4 py-3 hover:bg-surface-container-low cursor-pointer border-b border-outline-variant/30 last:border-0"
           >
-            <option value="" disabled selected>Modèle</option>
-            <option value="Ghost 16">Ghost 16</option>
-            <option value="Ghost 15">Ghost 15</option>
-            <option value="Adrenaline GTS">Adrenaline GTS</option>
-          </select>
-          <span class="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none">expand_more</span>
+            <div class="text-xs font-bold text-on-surface">{{ shoe.name }}</div>
+            <div class="text-[10px] text-on-surface-variant flex gap-2">
+              <span>{{ shoe.brand }}</span>
+              <span>·</span>
+              <span>{{ shoe.Drop }}</span>
+            </div>
+          </div>
         </div>
       </div>
 
