@@ -10,18 +10,39 @@ const props = defineProps({
   nouvelleSessionActif: {
     type: Boolean,
     default: false
+  },
+  activeStep: {
+    type: Number,
+    default: 1
   }
 })
 
 const route = useRoute()
 const isPatientManagement = computed(() => route.path === '/patients')
 
-const steps = [
-  { id: 1, name: 'Saisie patient', status: 'En cours...', active: true },
-  { id: 2, name: 'Analyse', status: 'En attente', locked: true },
-  { id: 3, name: 'Rapport', status: 'En attente', locked: true },
-  { id: 4, name: 'Recommandations', status: 'En attente', locked: true },
-]
+const steps = computed(() => {
+  const baseSteps = [
+    { id: 1, name: 'Saisie patient' },
+    { id: 2, name: 'Analyse' },
+    { id: 3, name: 'Rapport' },
+    { id: 4, name: 'Recommandations' },
+  ]
+
+  return baseSteps.map(step => {
+    let status = 'En attente'
+    let state = 'waiting' // 'waiting' | 'active' | 'done'
+
+    if (step.id === props.activeStep) {
+      status = 'En cours...'
+      state = 'active'
+    } else if (step.id < props.activeStep) {
+      status = 'Validé'
+      state = 'done'
+    }
+
+    return { ...step, status, state }
+  })
+})
 </script>
 
 <template>
@@ -59,20 +80,38 @@ const steps = [
           <div v-for="step in steps" :key="step.id" class="flex items-center gap-5 relative z-10">
             <!-- Icon Circle -->
             <div 
-              class="w-10 h-10 rounded-full flex items-center justify-center shadow-sm"
-              :class="step.active ? 'bg-[#0D2B6B] text-white shadow-[#0D2B6B]/20' : 'bg-slate-100 text-slate-400'"
+              class="w-10 h-10 rounded-full flex items-center justify-center shadow-sm transition-all duration-300"
+              :class="{
+                'bg-[#0D2B6B] text-white shadow-[#0D2B6B]/20': step.state === 'active',
+                'bg-green-400 text-white shadow-green-100': step.state === 'done',
+                'bg-slate-100 text-slate-400': step.state === 'waiting'
+              }"
             >
               <span class="material-symbols-outlined text-lg">
-                {{ step.active ? 'sync' : 'lock' }}
+                {{ step.state === 'active' ? 'sync' : step.state === 'done' ? 'check' : 'lock' }}
               </span>
             </div>
 
             <!-- Label & Status -->
             <div class="flex flex-col">
-              <span class="text-[11px] font-bold uppercase tracking-wider" :class="step.active ? 'text-[#0D2B6B]' : 'text-slate-300'">
+              <span 
+                class="text-[11px] font-bold uppercase tracking-wider transition-colors duration-300" 
+                :class="{
+                  'text-[#0D2B6B]': step.state === 'active',
+                  'text-[#0D2B6B]/70': step.state === 'done',
+                  'text-slate-300': step.state === 'waiting'
+                }"
+              >
                 {{ step.name }}
               </span>
-              <span class="text-[9px] font-medium" :class="step.active ? 'text-blue-400' : 'text-slate-300'">
+              <span 
+                class="text-[9px] font-medium transition-colors duration-300" 
+                :class="{
+                  'text-blue-400': step.state === 'active',
+                  'text-green-500 font-bold': step.state === 'done',
+                  'text-slate-300': step.state === 'waiting'
+                }"
+              >
                 {{ step.status }}
               </span>
             </div>

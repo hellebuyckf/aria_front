@@ -2,7 +2,7 @@
 import { ref, watch, onMounted } from 'vue'
 import { useShoeStore } from '../../stores/shoes'
 import { useSessionStore } from '../../stores/session'
-import { mapShoeToUI } from '../../utils/shoeMapping'
+import { mapShoeToUI, mapGenderToDB } from '../../utils/shoeMapping'
 
 const props = defineProps({
   modelValue: {
@@ -21,8 +21,10 @@ const shoeStore = useShoeStore()
 const sessionStore = useSessionStore()
 
 const modelSearch = ref(props.modelValue.modele)
-const showSuggestions = ref(false)
+const brandSearch = ref(props.modelValue.marque)
+const activeDropdown = ref(null) // 'brand', 'model', or null
 const suggestions = ref([])
+const brandSuggestions = ref([])
 
 onMounted(() => {
   shoeStore.loadDatabase()
@@ -32,32 +34,68 @@ const updateField = (field, value) => {
   emit('update:modelValue', { ...props.modelValue, [field]: value })
 }
 
+const onBrandInput = (e) => {
+  const val = e.target.value
+  brandSearch.value = val
+  activeDropdown.value = 'brand'
+  
+  if (val.length > 0) {
+    brandSuggestions.value = shoeStore.brands.filter(b => 
+      b.toLowerCase().includes(val.toLowerCase())
+    ).slice(0, 10)
+  } else {
+    brandSuggestions.value = shoeStore.brands.slice(0, 10)
+  }
+}
+
+const selectBrand = (brand) => {
+  updateField('marque', brand)
+  brandSearch.value = brand
+  activeDropdown.value = null
+}
+
 const onModelInput = (e) => {
   const val = e.target.value
   modelSearch.value = val
-  updateField('modele', val)
+  activeDropdown.value = 'model'
   
-  if (val.length > 1) {
-    suggestions.value = shoeStore.search(val, props.modelValue.marque, props.gender)
-    showSuggestions.value = true
-  } else {
-    showSuggestions.value = false
-  }
+  // Use existing store search with brand and gender
+  const mappedGender = mapGenderToDB(props.gender)
+  suggestions.value = shoeStore.search(val, props.modelValue.marque, mappedGender)
 }
 
 const selectShoe = (shoe) => {
   const mapped = mapShoeToUI(shoe)
   emit('update:modelValue', mapped)
   modelSearch.value = mapped.modele
-  showSuggestions.value = false
+  brandSearch.value = mapped.marque
+  activeDropdown.value = null
 }
 
 const onVider = () => {
   sessionStore.resetChaussure()
   modelSearch.value = ''
+  brandSearch.value = ''
 }
 
-// Sync modelSearch if modelValue.modele changes externally (e.g. on reset)
+// Sync searches if modelValue changes externally
+watch(() => props.modelValue.marque, (newVal, oldVal) => {
+  brandSearch.value = newVal
+  
+  // US3: Reset model and technical fields when brand changes
+  if (newVal !== oldVal) {
+    emit('update:modelValue', {
+      marque: newVal,
+      modele: '',
+      drop: '',
+      stabilite: '',
+      amorti: '',
+      poidsType: '',
+      dynamisme: ''
+    })
+  }
+})
+
 watch(() => props.modelValue.modele, (newVal) => {
   modelSearch.value = newVal
 })
@@ -100,37 +138,60 @@ const dynamisms = [
 
     <div class="grid grid-cols-3 gap-6">
       <!-- Marque -->
-      <div class="flex flex-col gap-1.5">
+      <div class="flex flex-col gap-1.5 relative">
         <label class="text-xs font-medium text-on-surface px-1">Marque</label>
         <div class="relative">
           <input 
             type="text"
-            :value="modelValue.marque"
-            @input="updateField('marque', $event.target.value)"
+            v-model="brandSearch"
+            @input="onBrandInput"
+            @focus="onBrandInput"
+            @blur="setTimeout(() => activeDropdown = (activeDropdown === 'brand' ? null : activeDropdown), 200)"
             placeholder="Ex: Asics"
             class="w-full h-11 px-4 rounded-xl border border-outline-variant/50 bg-white text-sm focus:border-primary outline-none transition-all"
-            list="brand-list"
           />
-          <datalist id="brand-list">
-            <option v-for="b in shoeStore.brands" :key="b" :value="b" />
-          </datalist>
+          <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-xl">
+            {{ activeDropdown === 'brand' ? 'expand_less' : 'expand_more' }}
+          </span>
+        </div>
+        
+        <!-- Brand Suggestions -->
+        <div v-if="activeDropdown === 'brand' && brandSuggestions.length > 0" class="absolute top-full left-0 right-0 z-50 mt-1 bg-white border border-outline-variant/50 rounded-xl shadow-lg max-h-60 overflow-y-auto">
+          <div 
+            v-for="brand in brandSuggestions" 
+            :key="brand"
+            @mousedown="selectBrand(brand)"
+            class="px-4 py-3 hover:bg-surface-container-low cursor-pointer border-b border-outline-variant/30 last:border-0 text-xs font-medium text-on-surface"
+          >
+            {{ brand }}
+          </div>
         </div>
       </div>
 
       <!-- Modèle -->
       <div class="flex flex-col gap-1.5 relative">
-        <label class="text-xs font-medium text-on-surface px-1">Modèle</label>
-        <input 
-          type="text"
-          :value="modelSearch"
-          @input="onModelInput"
-          @blur="setTimeout(() => showSuggestions = false, 200)"
-          placeholder="Ex: Nimbus 25"
-          class="w-full h-11 px-4 rounded-xl border border-outline-variant/50 bg-white text-sm focus:border-primary outline-none transition-all"
-        />
+        <div class="flex items-center justify-between px-1">
+          <label class="text-xs font-medium text-on-surface">Modèle</label>
+          <span v-if="!gender" class="text-[10px] font-medium text-red-500 italic">Sexe requis</span>
+        </div>
+        <div class="relative">
+          <input 
+            type="text"
+            v-model="modelSearch"
+            @input="onModelInput"
+            @focus="onModelInput"
+            @blur="setTimeout(() => activeDropdown = (activeDropdown === 'model' ? null : activeDropdown), 200)"
+            :disabled="!gender"
+            placeholder="Ex: Nimbus 25"
+            class="w-full h-11 px-4 rounded-xl border border-outline-variant/50 bg-white text-sm focus:border-primary outline-none transition-all disabled:opacity-50 disabled:bg-surface-container-low cursor-text disabled:cursor-not-allowed"
+          />
+          <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-xl">
+            {{ activeDropdown === 'model' ? 'expand_less' : 'expand_more' }}
+          </span>
+        </div>
         
         <!-- Suggestions Dropdown -->
-        <div v-if="showSuggestions && suggestions.length > 0" class="absolute top-full left-0 right-0 z-50 mt-1 bg-white border border-outline-variant/50 rounded-xl shadow-lg max-h-60 overflow-y-auto">
+        <div v-if="activeDropdown === 'model' && suggestions.length > 0" class="absolute top-full left-0 right-0 z-50 mt-1 bg-white border border-outline-variant/50 rounded-xl shadow-lg max-h-60 overflow-y-auto">
           <div 
             v-for="shoe in suggestions" 
             :key="shoe.url"

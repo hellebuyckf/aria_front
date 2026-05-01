@@ -41,6 +41,7 @@ const onAnnuler = () => {
     <AppSideNav 
       :badge-patient="sessionStore.badgeSidebar"
       :nouvelle-session-actif="true"
+      :active-step="1"
     />
 
     <div class="flex-1 flex flex-col min-w-0">

@@ -2,6 +2,12 @@
  * Normalizes database strings from chaussure_all.jsonl to UI enum values.
  */
 
+export function mapGenderToDB(gender) {
+  if (gender === 'Homme') return 'homme'
+  if (gender === 'Femme') return 'femme'
+  return ''
+}
+
 export function mapShoeToUI(dbShoe) {
   return {
     marque: dbShoe.brand || '',

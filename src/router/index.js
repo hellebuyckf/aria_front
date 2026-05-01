@@ -30,7 +30,7 @@ const router = createRouter({
     {
       path: '/session/:sessionId/analysis',
       name: 'analysis',
-      component: () => import('../views/Analyse.vue'), // Mock view
+      component: () => import('../views/AnalysisView.vue'),
       meta: { requiresAuth: true }
     }
   ]
