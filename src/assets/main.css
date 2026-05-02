@@ -69,3 +69,41 @@
 .animate-spin {
   animation: spin 1s linear infinite;
 }
+
+/* Print Styles */
+@media print {
+  .app-sidebar,
+  .app-topbar,
+  .report-actions,
+  nav,
+  header,
+  button {
+    display: none !important;
+  }
+
+  main {
+    margin-left: 0 !important;
+    padding: 0 !important;
+    background: white !important;
+  }
+
+  .report-container {
+    box-shadow: none !important;
+    border: none !important;
+    width: 100% !important;
+    max-width: none !important;
+  }
+
+  .phase-card {
+    break-inside: avoid;
+  }
+
+  body {
+    background: white !important;
+    color: black !important;
+  }
+
+  .text-cyan-400 {
+    color: #0891b2 !important;
+  }
+}

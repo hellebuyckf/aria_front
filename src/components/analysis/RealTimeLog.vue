@@ -22,7 +22,10 @@ watch(() => props.entries.length, () => {
 
 <template>
   <div class="p-6 rounded-2xl bg-white border border-outline-variant/50 shadow-sm flex flex-col">
-    <h2 class="text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-4 px-1">Log Temps Réel</h2>
+    <h2 class="text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-4 px-1 flex items-center gap-2">
+      <span class="material-symbols-outlined text-xl">eye_tracking</span>
+      Agent ARIA
+    </h2>
     
     <div 
       ref="logContainer"

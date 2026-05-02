@@ -141,7 +141,7 @@ const subtitle = computed(() => {
 
 <template>
   <div class="min-h-screen bg-surface flex">
-    <AppSideNav :active-step="2" />
+    <AppSideNav :active-step="2" :badge-patient="sessionStore.badgeSidebar" />
 
     <div class="flex-1 flex flex-col">
       <AppTopBar />
