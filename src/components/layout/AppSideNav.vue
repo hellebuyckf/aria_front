@@ -14,6 +14,10 @@ const props = defineProps({
   activeStep: {
     type: Number,
     default: 1
+  },
+  isDone: {
+    type: Boolean,
+    default: false
   }
 })
 
@@ -33,8 +37,13 @@ const steps = computed(() => {
     let state = 'waiting' // 'waiting' | 'active' | 'done'
 
     if (step.id === props.activeStep) {
-      status = 'En cours...'
-      state = 'active'
+      if (props.isDone) {
+        status = 'Validé'
+        state = 'done'
+      } else {
+        status = 'En cours...'
+        state = 'active'
+      }
     } else if (step.id < props.activeStep) {
       status = 'Validé'
       state = 'done'
@@ -87,7 +96,10 @@ const steps = computed(() => {
                 'bg-slate-100 text-slate-400': step.state === 'waiting'
               }"
             >
-              <span class="material-symbols-outlined text-lg">
+              <span 
+                class="material-symbols-outlined text-lg"
+                :class="{ 'animate-spin': step.state === 'active' }"
+              >
                 {{ step.state === 'active' ? 'sync' : step.state === 'done' ? 'check' : 'lock' }}
               </span>
             </div>
