@@ -19,6 +19,7 @@ defineProps({
         :key="index"
         :label="step.label"
         :status="step.status"
+        :message="step.message"
         :elapsedMs="step.elapsedMs"
         :showConnector="index < steps.length - 1"
       />

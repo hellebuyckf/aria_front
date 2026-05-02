@@ -26,7 +26,7 @@ watch(() => props.entries.length, () => {
     
     <div 
       ref="logContainer"
-      class="flex-1 bg-[#1a1a2e] border border-surface-container rounded-xl p-4 h-48 overflow-y-auto font-mono text-[11px] custom-scrollbar scroll-smooth"
+      class="bg-[#1a1a2e] border border-surface-container rounded-3xl p-6 h-[288px] overflow-y-auto font-mono text-[11px] leading-6 custom-scrollbar scroll-smooth shadow-inner"
     >
       <TransitionGroup name="fade">
         <LogLine 

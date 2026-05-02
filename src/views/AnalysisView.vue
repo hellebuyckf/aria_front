@@ -21,15 +21,13 @@ const sessionStore = useSessionStore()
 
 const sessionId = route.params.sessionId
 const showReportButton = ref(false)
+const readyToGenerate = ref(false)
 
 const steps = ref([
-  { id: 'ingestion', label: 'Ingestion des données', status: 'idle', startTime: null, elapsedMs: null },
-  { id: 'extraction', label: 'Extraction cinématique', status: 'idle', startTime: null, elapsedMs: null },
-  { id: 'calcul', label: 'Calcul des vecteurs force', status: 'idle', startTime: null, elapsedMs: null },
-  { id: 'medical', label: 'RAG médical & contexte clinique', status: 'idle', startTime: null, elapsedMs: null },
-  { id: 'web', label: 'Web grounding scientifique', status: 'idle', startTime: null, elapsedMs: null },
-  { id: 'generation', label: 'Génération protocole correctif', status: 'idle', startTime: null, elapsedMs: null },
-  { id: 'export', label: 'Export rapport final PDF/Web', status: 'idle', startTime: null, elapsedMs: null }
+  { id: 'video', label: 'Extraction cinématique & Calculs', status: 'idle', message: '', startTime: null, elapsedMs: null },
+  { id: 'diagnostic', label: 'Analyse Diagnostique', status: 'idle', message: '', startTime: null, elapsedMs: null },
+  { id: 'rag', label: 'Recherche & RAG Médical', status: 'idle', message: '', startTime: null, elapsedMs: null },
+  { id: 'rapport', label: 'Génération du Rapport', status: 'idle', message: '', startTime: null, elapsedMs: null }
 ])
 
 const handlePipelineMapping = (event) => {
@@ -48,20 +46,36 @@ const handlePipelineMapping = (event) => {
       if (s.status === 'idle') s.status = 'done'
     })
     showReportButton.value = true
-    setTimeout(() => goToReport(), 2000)
     return
   }
 
-  const stepIndex = steps.value.findIndex(s => s.id === event.substep)
+  if (event.type === 'ready') {
+    // Mark all Phase 1 steps as done
+    steps.value.forEach(s => {
+      if (['video', 'diagnostic', 'rag'].includes(s.id)) {
+        if (s.status === 'running') {
+          s.elapsedMs = Date.now() - s.startTime
+        }
+        s.status = 'done'
+        s.message = ''
+      }
+    })
+    readyToGenerate.value = true
+    return
+  }
+
+  const stepIndex = steps.value.findIndex(s => s.id === event.etape)
   if (stepIndex === -1) return
 
   const targetStep = steps.value[stepIndex]
 
-  // If this step is already done or running, ignore (unless status update)
+  // Update message regardless of status
+  targetStep.message = event.message || ''
+
   if (targetStep.status === 'done') return
 
   if (targetStep.status === 'idle') {
-    // Mark previous steps as done
+    // Mark all previous steps as done
     for (let i = 0; i < stepIndex; i++) {
       if (steps.value[i].status !== 'done') {
         steps.value[i].status = 'done'
@@ -84,7 +98,7 @@ onMounted(() => {
   if (import.meta.env.VITE_MOCK_WS === 'true' || sessionId === 'SES-mock') {
     wsStore.connectMock()
   } else {
-    wsStore.connect(sessionId)
+    wsStore.connect(sessionId, sessionStore.wsUrl)
   }
 })
 
@@ -94,6 +108,17 @@ onUnmounted(() => {
 
 const goToReport = () => {
   router.push(`/session/${sessionId}/report`)
+}
+
+const onGenerateReport = async () => {
+  try {
+    // Phase 2: Start report generation
+    // We send a POST to trigger the report generation phase
+    await sessionStore.genererRapport()
+    readyToGenerate.value = false
+  } catch (e) {
+    console.error('Report generation failed', e)
+  }
 }
 
 const onRetry = () => {
@@ -143,6 +168,17 @@ const subtitle = computed(() => {
             <RealTimeLog :entries="wsStore.logEntries" />
             <MetricsPreviewGrid :metrics="wsStore.metrics" />
           </div>
+        </div>
+
+        <!-- Phase 2 Action -->
+        <div v-if="readyToGenerate" class="fixed bottom-8 right-8">
+          <button 
+            @click="onGenerateReport"
+            class="flex items-center gap-2 px-6 py-4 rounded-2xl bg-[#0D2B6B] hover:bg-[#1a3b8b] text-white shadow-2xl transition-all font-bold uppercase tracking-widest text-sm"
+          >
+            <span class="material-symbols-outlined">auto_awesome</span>
+            Générer le rapport final
+          </button>
         </div>
 
         <!-- Completion Action -->

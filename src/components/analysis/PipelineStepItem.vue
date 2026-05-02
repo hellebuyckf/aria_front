@@ -8,6 +8,10 @@ defineProps({
     type: String,
     default: 'idle' // 'idle' | 'running' | 'done' | 'error'
   },
+  message: {
+    type: String,
+    default: ''
+  },
   elapsedMs: {
     type: Number,
     default: null
@@ -69,7 +73,7 @@ defineProps({
           v-if="status === 'running'" 
           class="text-[10px] font-medium text-accent italic mt-0.5 animate-pulse"
         >
-          En cours...
+          {{ message || 'En cours...' }}
         </div>
         
         <div 

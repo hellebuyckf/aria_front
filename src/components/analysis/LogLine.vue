@@ -17,7 +17,7 @@ defineProps({
 
 <template>
   <div class="flex items-center gap-2 py-0.5 whitespace-nowrap overflow-hidden">
-    <span class="text-on-surface-variant/40 shrink-0">[{{ timestamp }}]</span>
+    <span class="text-yellow-200/60 shrink-0">[{{ timestamp }}]</span>
     
     <span 
       class="text-[9px] font-bold px-1.5 py-0.5 rounded leading-none shrink-0 min-w-[45px] text-center"
@@ -33,7 +33,7 @@ defineProps({
     </span>
 
     <span 
-      class="text-on-surface-variant/80 text-ellipsis overflow-hidden"
+      class="text-white text-ellipsis overflow-hidden"
       :class="{ 'text-accent font-medium': level === 'ACTION' }"
     >
       <span v-if="level === 'ACTION'" class="mr-1">>>></span>
