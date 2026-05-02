@@ -48,8 +48,8 @@ const steps = computed(() => {
 <template>
   <nav class="w-64 border-r border-slate-200 bg-white flex flex-col h-screen">
     <!-- Header: Logo & Slogan -->
-    <div class="pt-10 pb-8 flex flex-col items-center">
-      <img src="/logo-aria.png" alt="ARIA Logo" class="h-28 w-auto object-contain mb-6">
+    <div class="pt-2 pb-4 flex flex-col items-center">
+      <img src="/logo-aria.png" alt="ARIA Logo" class="h-56 w-auto object-contain mb-2">
       <div class="text-[9px] uppercase tracking-[0.2em] font-bold text-[#0D2B6B]/40 text-center leading-relaxed px-4">
         Le analyse et retour /<br>intelligent sur l'allure
       </div>
