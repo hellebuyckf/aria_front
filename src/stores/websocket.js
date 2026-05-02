@@ -31,10 +31,12 @@ export const useWebSocketStore = defineStore('websocket', () => {
   }
 
   function handleEvent(event) {
+    if (event.type === 'ping' || event.type === 'connected') return
+
     lastEvent.value = event
 
-    if (event.type === 'progress') {
-      if (event.pct && event.pct > pct.value) {
+    if (event.type === 'progress' || event.type === 'metrics') {
+      if (event.pct !== undefined && event.pct > pct.value) {
         pct.value = event.pct
       }
       if (event.message) {
@@ -47,9 +49,24 @@ export const useWebSocketStore = defineStore('websocket', () => {
           logEntries.value.shift()
         }
       }
-      if (event.metrics) {
-        metrics.value = { ...metrics.value, ...event.metrics }
+      if (event.type === 'metrics' && event.metrics) {
+        metrics.value = event.metrics // Complete replacement, not merge
       }
+    } else if (event.type === 'ready') {
+      if (event.pct !== undefined) {
+        pct.value = event.pct
+      }
+      if (event.diagnostic) {
+        metrics.value = { ...metrics.value, ...event.diagnostic }
+      }
+      if (event.message) {
+        logEntries.value.push({
+          timestamp: new Date().toLocaleTimeString('fr-FR'),
+          level: event.level || 'OK',
+          message: event.message
+        })
+      }
+      wsStatus.value = 'connected'
     } else if (event.type === 'error') {
       error.value = {
         message: event.message,
@@ -63,21 +80,67 @@ export const useWebSocketStore = defineStore('websocket', () => {
     }
   }
 
-  function connect(sessionId) {
+  function connect(sessionId, customUrl = null) {
     if (ws) ws.close()
     
     wsStatus.value = reconnectAttempts > 0 ? 'reconnecting' : 'connecting'
     
-    // In a real app, this would be: new WebSocket(`ws://api.example.com/analysis/${sessionId}`)
-    // For this MVP project, we simulate the connection
-    console.log(`Connecting to WebSocket for session: ${sessionId}`)
+    let wsUrl = ''
+    if (customUrl) {
+      // If backend returns a relative path like /ws/session/xxx
+      if (customUrl.startsWith('/')) {
+        const baseUrl = import.meta.env.VITE_WS_URL || 'ws://localhost:8000'
+        wsUrl = `${baseUrl}${customUrl}`
+      } else {
+        wsUrl = customUrl
+      }
+    } else {
+      const baseUrl = import.meta.env.VITE_WS_URL || 'ws://localhost:8000'
+      wsUrl = `${baseUrl}/ws/session/${sessionId}`
+    }
     
-    // Simulate real connection for the sake of the store's state machine
-    setTimeout(() => {
-      connected.value = true
-      wsStatus.value = 'connected'
-      reconnectAttempts = 0
-    }, 500)
+    console.log(`Connecting to WebSocket: ${wsUrl}`)
+    
+    try {
+      ws = new WebSocket(wsUrl)
+
+      ws.onopen = () => {
+        connected.value = true
+        wsStatus.value = 'connected'
+        reconnectAttempts = 0
+        console.log('WebSocket connected')
+      }
+
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data)
+          handleEvent(data)
+        } catch (e) {
+          console.error('Failed to parse WS message', e)
+        }
+      }
+
+      ws.onclose = () => {
+        connected.value = false
+        if (wsStatus.value !== 'failed' && reconnectAttempts < maxReconnectAttempts) {
+          wsStatus.value = 'reconnecting'
+          setTimeout(() => {
+            reconnectAttempts++
+            connect(sessionId, customUrl)
+          }, reconnectDelays[reconnectAttempts])
+        } else if (reconnectAttempts >= maxReconnectAttempts) {
+          wsStatus.value = 'failed'
+        }
+      }
+
+      ws.onerror = (err) => {
+        console.error('WebSocket error', err)
+        // ws.close() will trigger reconnection logic
+      }
+    } catch (e) {
+      console.error('WebSocket connection failed', e)
+      wsStatus.value = 'failed'
+    }
   }
 
   function disconnect() {
@@ -90,17 +153,56 @@ export const useWebSocketStore = defineStore('websocket', () => {
     wsStatus.value = 'connecting'
     
     const mockEvents = [
-      { type: 'progress', etape: 'video', substep: 'ingestion', pct: 5, level: 'INFO', message: 'Initialisation du pipeline...' },
-      { type: 'progress', etape: 'video', substep: 'ingestion', pct: 15, level: 'OK', message: 'Données vidéo ingérées (2.4s)' },
-      { type: 'progress', etape: 'video', substep: 'extraction', pct: 30, level: 'ACTION', message: 'Extraction cinématique des points clés...' },
-      { type: 'progress', etape: 'video', substep: 'extraction', pct: 40, level: 'OK', message: '142 points clés extraits (8.1s)' },
-      { type: 'progress', etape: 'video', substep: 'calcul', pct: 55, level: 'OK', message: 'Vecteurs force calculés (5.9s)', metrics: { cadence: 172, oscillation_verticale: 11.2, angle_tibial: 14.8, flexion_genou: 22.4, penchee_tronc: 17.2, attaque_pied: 'midfoot', longueur_foulee: 'Normale', stabilite_cheville: 'Stable' } },
-      { type: 'progress', etape: 'rag', substep: 'medical', pct: 65, level: 'ACTION', message: 'Consultation de la base de connaissances médicale...' },
-      { type: 'progress', etape: 'rag', substep: 'medical', pct: 75, level: 'OK', message: 'Contexte clinique récupéré' },
-      { type: 'progress', etape: 'rag', substep: 'web', pct: 85, level: 'ACTION', message: 'Web grounding scientifique (PubMed)...' },
-      { type: 'progress', etape: 'rapport', substep: 'generation', pct: 92, level: 'INFO', message: 'Génération du protocole correctif...' },
-      { type: 'progress', etape: 'rapport', substep: 'export', pct: 98, level: 'INFO', message: 'Export du rapport final...' },
-      { type: 'completed', etape: 'rapport', substep: 'export', pct: 100, level: 'OK', message: 'Analyse terminée avec succès.' }
+      { type: 'progress', etape: 'video', pct: 5, level: 'INFO', message: 'Initialisation du pipeline...' },
+      { type: 'progress', etape: 'video', pct: 15, level: 'OK', message: 'Données vidéo ingérées (2.4s)' },
+      { type: 'progress', etape: 'video', pct: 30, level: 'ACTION', message: 'Extraction cinématique des points clés...' },
+      { type: 'progress', etape: 'video', pct: 40, level: 'OK', message: '142 points clés extraits (8.1s)' },
+      { type: 'progress', etape: 'video', pct: 55, level: 'OK', message: 'Vecteurs force calculés (5.9s)' },
+      { 
+        type: 'metrics', 
+        pct: 38,
+        message: 'Métriques sagittales calculées',
+        metrics: { 
+          cadence: 147.5, 
+          angle_attaque_pied: 'midfoot', 
+          flexion_genou_impact: 16.8, 
+          inclinaison_tronc: null, 
+          oscillation_verticale: 2.08, 
+          ratio_contact_suspension: 0.625,
+          pelvic_drop: null,
+          valgus_genou: null,
+          asymetrie_charge: null,
+          oscillation_laterale_hanche: null,
+          pronation_pied: null,
+          vue_posterieure_disponible: false
+        } 
+      },
+      { 
+        type: 'metrics', 
+        pct: 40,
+        message: 'Métriques postérieures ajoutées',
+        metrics: { 
+          cadence: 148.2, // Value changed
+          angle_attaque_pied: 'midfoot', 
+          flexion_genou_impact: 16.8, 
+          inclinaison_tronc: 8.5, 
+          oscillation_verticale: 2.08, 
+          ratio_contact_suspension: 0.625,
+          pelvic_drop: 4.2,
+          valgus_genou: 6.8,
+          asymetrie_charge: 5.4,
+          oscillation_laterale_hanche: 2.1,
+          pronation_pied: 5.4,
+          vue_posterieure_disponible: true
+        } 
+      },
+      { type: 'progress', etape: 'diagnostic', pct: 65, level: 'ACTION', message: 'Analyse diagnostique des pathologies...' },
+      { type: 'progress', etape: 'diagnostic', pct: 75, level: 'OK', message: 'Diagnostic établi' },
+      { type: 'progress', etape: 'rag', pct: 85, level: 'ACTION', message: 'Recherche bibliographique PubMed...' },
+      { type: 'ready', etape: 'rag', pct: 100, level: 'OK', message: 'Analyse préliminaire prête', diagnostic: { cadence: 148, pelvic_drop: 4.5 } },
+      { type: 'progress', etape: 'rapport', pct: 92, level: 'INFO', message: 'Génération du protocole correctif...' },
+      { type: 'progress', etape: 'rapport', pct: 98, level: 'INFO', message: 'Export du rapport final...' },
+      { type: 'completed', etape: 'rapport', pct: 100, level: 'OK', message: 'Analyse terminée avec succès.' }
     ]
 
     let index = 0

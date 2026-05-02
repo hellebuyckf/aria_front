@@ -1,8 +1,10 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
+import api from '../services/api'
 
 export const useSessionStore = defineStore('session', () => {
   const sessionId = ref(null)
+  const wsUrl = ref(null)
   const patientId = ref(null)
   const horodatage = ref(null)
   const statut = ref('idle') // 'idle' | 'en-cours' | 'analyse' | 'rapport' | 'erreur'
@@ -11,15 +13,12 @@ export const useSessionStore = defineStore('session', () => {
     age: '',
     taille: '',
     poids: '',
-    sexe: '',
     kmSemaine: '',
     niveauPratique: 'intermediaire'
   })
 
   const pathologie = ref({
-    type: '',
-    cote: 'bilateral',
-    severite: 'moderee'
+    type: ''
   })
 
   const videos = ref({
@@ -42,7 +41,9 @@ export const useSessionStore = defineStore('session', () => {
     garminConnecte: false
   })
 
-  const formulaireValide = computed(() => videos.value.sagittale !== null)
+  const formulaireValide = computed(() => {
+    return patientId.value !== null && videos.value.sagittale !== null
+  })
 
   const badgeSidebar = computed(() => {
     if (!patientId.value) return ''
@@ -51,20 +52,18 @@ export const useSessionStore = defineStore('session', () => {
   })
 
   function initialiser(patient) {
+    if (!patient) return
     patientId.value = patient.id
+    profil.value = { ...patient.profil }
     horodatage.value = new Date().toISOString()
-    statut.value = 'idle'
-    
-    // Pre-fill from patient folder if data exists
-    if (patient.profil) {
-      profil.value = { ...profil.value, ...patient.profil }
-    }
-    if (patient.pathologie) {
-      pathologie.value = { ...pathologie.value, ...patient.pathologie }
-    }
-    if (patient.chaussure) {
-      chaussure.value = { ...chaussure.value, ...patient.chaussure }
-    }
+  }
+
+  function updateProfil(data) {
+    profil.value = { ...profil.value, ...data }
+  }
+
+  function setVideo(vue, file) {
+    videos.value[vue] = file
   }
 
   function connecterStrava() {
@@ -77,25 +76,69 @@ export const useSessionStore = defineStore('session', () => {
     entrainement.value.garminConnecte = true
   }
 
-  function lancerAnalyse() {
-    sessionId.value = `SES-${Date.now()}`
-    statut.value = 'analyse'
+  async function lancerAnalyse() {
+    statut.value = 'en-cours'
+
+    // Fallback for Mock Mode
+    if (import.meta.env.VITE_MOCK_WS === 'true') {
+      sessionId.value = 'SES-mock'
+      statut.value = 'analyse'
+      return 'SES-mock'
+    }
+
+    try {
+      const fd = new FormData()
+      
+      // Mandatory fields
+      fd.append('patient_id', patientId.value)
+      fd.append('video_sagittale', videos.value.sagittale)
+
+      // Optional metadata
+      if (pathologie.value.type) fd.append('pathologie_declaree', pathologie.value.type)
+      if (profil.value.age) fd.append('age', parseInt(profil.value.age))
+      if (profil.value.taille) fd.append('taille_cm', parseInt(profil.value.taille))
+      if (profil.value.poids) fd.append('poids_kg', parseFloat(profil.value.poids))
+      if (profil.value.kmSemaine) fd.append('km_semaine', parseInt(profil.value.kmSemaine))
+      if (profil.value.niveauPratique) fd.append('niveau_pratique', profil.value.niveauPratique)
+      
+      // Optional video
+      if (videos.value.posterieure) fd.append('video_posterieure', videos.value.posterieure)
+
+      // Shoe profile as JSON string
+      if (chaussure.value.marque) {
+        fd.append('profil_chaussure', JSON.stringify({
+          marque: chaussure.value.marque,
+          drop_mm: parseInt(chaussure.value.drop) || 0
+        }))
+      }
+
+      const response = await api.post('/api/sessions', fd)
+      
+      if (response.data && response.data.session_id) {
+        sessionId.value = response.data.session_id
+        wsUrl.value = response.data.ws_url
+        statut.value = 'analyse'
+        return response.data.session_id
+      }
+    } catch (e) {
+      console.error('Failed to start analysis', e)
+      statut.value = 'erreur'
+      throw e
+    }
   }
 
-  function resetChaussure() {
-    chaussure.value = {
-      marque: '',
-      modele: '',
-      drop: '',
-      stabilite: '',
-      amorti: '',
-      poidsType: '',
-      dynamisme: ''
+  async function genererRapport() {
+    try {
+      await api.post(`/api/sessions/${sessionId.value}/generate`)
+    } catch (e) {
+      console.error('Failed to trigger report generation', e)
+      throw e
     }
   }
 
   function reset() {
     sessionId.value = null
+    wsUrl.value = null
     patientId.value = null
     horodatage.value = null
     statut.value = 'idle'
@@ -103,19 +146,11 @@ export const useSessionStore = defineStore('session', () => {
       age: '',
       taille: '',
       poids: '',
-      sexe: '',
       kmSemaine: '',
       niveauPratique: 'intermediaire'
     }
-    pathologie.value = {
-      type: '',
-      cote: 'bilateral',
-      severite: 'moderee'
-    }
-    videos.value = {
-      sagittale: null,
-      posterieure: null
-    }
+    pathologie.value = { type: '' }
+    videos.value = { sagittale: null, posterieure: null }
     chaussure.value = {
       marque: '',
       modele: '',
@@ -131,8 +166,21 @@ export const useSessionStore = defineStore('session', () => {
     }
   }
 
+  function resetChaussure() {
+    chaussure.value = {
+      marque: '',
+      modele: '',
+      drop: '',
+      stabilite: '',
+      amorti: '',
+      poidsType: '',
+      dynamisme: ''
+    }
+  }
+
   return {
     sessionId,
+    wsUrl,
     patientId,
     horodatage,
     statut,
@@ -144,18 +192,19 @@ export const useSessionStore = defineStore('session', () => {
     formulaireValide,
     badgeSidebar,
     initialiser,
+    updateProfil,
+    setVideo,
     connecterStrava,
     connecterGarmin,
     lancerAnalyse,
-    resetChaussure,
-    reset
+    genererRapport,
+    reset,
+    resetChaussure
   }
 })
 
 function pathologieCourtLabel(type) {
   const table = {
-    'Lombalgie (douleur lombaire à l\'effort)': 'Lombalgie',
-    'Tendinite rotulienne (syndrome fémoro-patellaire)': 'Rotulienne',
     'Syndrome de la bandelette ilio-tibiale (SBIT)': 'SBIT',
     'Périostite tibiale (shin splints)': 'Périostite',
     'Tendinite du tendon d\'Achille': 'Achille',

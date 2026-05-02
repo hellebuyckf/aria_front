@@ -24,9 +24,16 @@ onMounted(() => {
   sessionStore.initialiser(patientsStore.activePatient)
 })
 
-const onLancerAnalyse = () => {
-  sessionStore.lancerAnalyse()
-  router.push(`/session/${sessionStore.sessionId}/analysis`)
+const onLancerAnalyse = async () => {
+  try {
+    const sessionId = await sessionStore.lancerAnalyse()
+    if (sessionId) {
+      router.push(`/session/${sessionId}/analysis`)
+    }
+  } catch (e) {
+    // Error state is handled by the store (statut.value = 'erreur')
+    console.error('Analyse start failed', e)
+  }
 }
 
 const onAnnuler = () => {
