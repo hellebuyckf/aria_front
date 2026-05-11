@@ -22,7 +22,7 @@ const levels = [
   { id: 'debutant', label: 'Débutant' },
   { id: 'intermediaire', label: 'Intermédiaire' },
   { id: 'avance', label: 'Avancé' },
-  { id: 'competiteur', label: 'Compétiteur' }
+  { id: 'competiteur', label: 'Pro/Elite' }
 ]
 </script>
 

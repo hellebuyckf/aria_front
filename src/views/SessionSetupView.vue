@@ -10,7 +10,6 @@ import ProfilPatientCard from '../components/session/ProfilPatientCard.vue'
 import PathologieCard from '../components/session/PathologieCard.vue'
 import VideoDepotCard from '../components/session/VideoDepotCard.vue'
 import ProfilChaussureCard from '../components/session/ProfilChaussureCard.vue'
-import DonneesEntrainementCard from '../components/session/DonneesEntrainementCard.vue'
 
 const router = useRouter()
 const patientsStore = usePatientsStore()
@@ -59,53 +58,44 @@ const onAnnuler = () => {
       <main class="flex-1 overflow-y-auto p-8 bg-[#F8FAFC]">
         <div class="max-w-6xl mx-auto">
           <div class="flex flex-col gap-8">
-            <!-- Grid Layout -->
+            <!-- Main Grid -->
             <div class="grid grid-cols-12 gap-8 items-start">
-              <!-- Left Column: Patient Profile & Shoe -->
-              <div class="col-span-7 flex flex-col gap-8">
-                <ProfilPatientCard 
+              <!-- Left Column: Patient Profile & Pathology -->
+              <div class="col-span-6 flex flex-col gap-8">
+                <ProfilPatientCard
                   :patient-id="sessionStore.patientId || ''"
                   v-model="sessionStore.profil"
                 />
-                <ProfilChaussureCard 
-                  v-model="sessionStore.chaussure" 
-                  :gender="sessionStore.profil.sexe"
-                />
+                <PathologieCard v-model="sessionStore.pathologie" />
               </div>
 
-              <!-- Right Column: Pathology, Videos & Training -->
-              <div class="col-span-5 flex flex-col gap-8">
-                <PathologieCard v-model="sessionStore.pathologie" />
-                <VideoDepotCard 
+              <!-- Right Column: Shoe Profile, Videos & Actions -->
+              <div class="col-span-6 flex flex-col gap-4">
+                <ProfilChaussureCard
+                  v-model="sessionStore.chaussure"
+                  :gender="sessionStore.profil.sexe"
+                />
+                <VideoDepotCard
                   v-model:sagittale="sessionStore.videos.sagittale"
                   v-model:posterieure="sessionStore.videos.posterieure"
                 />
-                <DonneesEntrainementCard 
-                  :strava-connecte="sessionStore.entrainement.stravaConnecte"
-                  :garmin-connecte="sessionStore.entrainement.garminConnecte"
-                  @connecter-strava="sessionStore.connecterStrava"
-                  @connecter-garmin="sessionStore.connecterGarmin"
-                />
+                <div class="flex items-center justify-end gap-3">
+                  <button
+                    @click="onAnnuler"
+                    class="px-6 py-2.5 rounded-lg text-sm font-medium border border-outline-variant bg-white text-on-surface hover:bg-surface-container-low transition-all"
+                  >
+                    Annuler
+                  </button>
+                  <button
+                    @click="onLancerAnalyse"
+                    :disabled="!sessionStore.formulaireValide"
+                    class="flex items-center gap-2 px-6 py-2.5 rounded-lg bg-[#0D2B6B] text-white shadow-md hover:bg-[#091F4D] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                  >
+                    <span class="material-symbols-outlined text-lg">play_arrow</span>
+                    <span class="text-sm font-bold">Lancer l'analyse ARIA</span>
+                  </button>
+                </div>
               </div>
-            </div>
-
-            <!-- Bottom Action Bar -->
-            <div class="flex items-center justify-end gap-4 mt-4">
-              <button 
-                @click="onAnnuler"
-                class="px-10 py-3 rounded-lg text-sm font-medium border border-outline-variant bg-white text-on-surface hover:bg-surface-container-low transition-all"
-              >
-                Annuler
-              </button>
-              
-              <button 
-                @click="onLancerAnalyse"
-                :disabled="!sessionStore.formulaireValide"
-                class="flex items-center gap-3 px-10 py-3 rounded-lg bg-[#0D2B6B] text-white shadow-md hover:bg-[#091F4D] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-              >
-                <span class="material-symbols-outlined text-lg">play_arrow</span>
-                <span class="text-sm font-bold">Lancer l'analyse ARIA</span>
-              </button>
             </div>
           </div>
         </div>

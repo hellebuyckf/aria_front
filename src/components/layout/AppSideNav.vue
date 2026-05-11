@@ -57,7 +57,7 @@ const steps = computed(() => {
   <nav class="w-64 border-r border-slate-200 bg-white flex flex-col h-screen">
     <!-- Header: Logo & Slogan -->
     <div class="pt-2 pb-4 flex flex-col items-center">
-      <img src="/logo-aria.png" alt="ARIA Logo" class="h-56 w-auto object-contain mb-2">
+      <img src="/logo-aria.png" alt="ARIA Logo" class="h-42 w-auto object-contain mb-2">
       <div class="text-[9px] uppercase tracking-[0.2em] font-bold text-[#0D2B6B]/40 text-center leading-relaxed px-4">
         Le analyse et retour /<br>intelligent sur l'allure
       </div>
@@ -133,25 +133,12 @@ const steps = computed(() => {
 
     <!-- Bottom Actions -->
     <div class="px-4 py-4 flex flex-col gap-1">
-      <button 
-        class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-medium transition-all"
-        :class="nouvelleSessionActif ? 'text-[#0D2B6B] hover:bg-slate-50' : 'text-slate-300 cursor-not-allowed'"
-      >
-        <span class="material-symbols-outlined text-lg">add</span>
-        Nouvelle session
-      </button>
-      <button 
-        class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-medium text-slate-300 cursor-not-allowed"
-      >
-        <span class="material-symbols-outlined text-lg">lock</span>
-        Historique patient
-      </button>
     </div>
 
     <!-- Footer -->
     <div class="px-8 pb-8 flex flex-col gap-0.5">
       <div class="text-[8px] uppercase tracking-widest font-bold text-slate-300">
-        MVP v2.0 · PFE
+        MVP v1.0
       </div>
       <div class="text-[8px] uppercase tracking-widest font-bold text-slate-300">
         ARIA-ft · MedGemma 4B
