@@ -11,7 +11,7 @@ export const useReportStore = defineStore('report', () => {
     loading.value = true
     error.value = null
     try {
-      if (import.meta.env.VITE_MOCK_API === 'true') {
+      if (import.meta.env.VITE_MOCK_API === 'true' || sessionId === 'SES-mock') {
         await new Promise(r => setTimeout(r, 600)) // simulate latency
         report.value = getMockReport(sessionId)
       } else {
@@ -70,6 +70,13 @@ function getMockReport(sessionId) {
       "km_semaine": 60,
       "niveau": "Intermédiaire"
     },
+    "metriques_anormales": [
+      "cadence",
+      "inclinaison_tronc",
+      "oscillation_verticale",
+      "attaque_pied",
+      "longueur_foulee"
+    ],
     "metriques": [
       { "id": "cadence", "label": "Cadence", "norme": "170 – 185 spm", "valeur": "158 spm", "statut": "anormal" },
       { "id": "penchee_tronc", "label": "Penchée du tronc", "norme": "5° – 10°", "valeur": "17.2°", "statut": "anormal" },

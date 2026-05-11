@@ -29,7 +29,6 @@ const steps = computed(() => {
     { id: 1, name: 'Saisie patient' },
     { id: 2, name: 'Analyse' },
     { id: 3, name: 'Rapport' },
-    { id: 4, name: 'Recommandations' },
   ]
 
   return baseSteps.map(step => {
