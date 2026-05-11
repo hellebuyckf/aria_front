@@ -3,6 +3,7 @@ import { ref, watch, onMounted, onUnmounted, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useWebSocketStore } from '../stores/websocket'
 import { useSessionStore } from '../stores/session'
+import { useReportStore } from '../stores/report'
 
 // Components
 import AppSideNav from '../components/layout/AppSideNav.vue'
@@ -18,10 +19,13 @@ const router = useRouter()
 const route = useRoute()
 const wsStore = useWebSocketStore()
 const sessionStore = useSessionStore()
+const reportStore = useReportStore()
 
 const sessionId = route.params.sessionId
 const showReportButton = ref(false)
 const readyToGenerate = ref(false)
+
+const metriquesAnormales = computed(() => reportStore.report?.metriques_anormales ?? wsStore.metriquesAnormales)
 
 const steps = ref([
   { id: 'video', label: 'Extraction cinématique & Calculs', status: 'idle', message: '', startTime: null, elapsedMs: null },
@@ -94,6 +98,10 @@ watch(() => wsStore.lastEvent, (newEvent) => {
   if (newEvent) handlePipelineMapping(newEvent)
 })
 
+watch(showReportButton, (done) => {
+  if (done) reportStore.fetchReport(sessionId)
+})
+
 onMounted(() => {
   if (import.meta.env.VITE_MOCK_WS === 'true' || sessionId === 'SES-mock') {
     wsStore.connectMock()
@@ -156,17 +164,36 @@ const subtitle = computed(() => {
         <div class="grid grid-cols-12 gap-6 items-start">
           <!-- Left Column -->
           <div class="col-span-5 flex flex-col gap-6">
-            <AnalysisProgressBar 
-              :pct="wsStore.pct" 
-              :status="wsStore.error ? 'error' : (wsStore.pct === 100 ? 'done' : 'running')" 
+            <AnalysisProgressBar
+              :pct="wsStore.pct"
+              :status="wsStore.error ? 'error' : (wsStore.pct === 100 ? 'done' : 'running')"
             />
             <PipelineStepList :steps="steps" />
+            <RealTimeLog :entries="wsStore.logEntries" />
           </div>
 
           <!-- Right Column -->
           <div class="col-span-7 flex flex-col gap-6">
-            <RealTimeLog :entries="wsStore.logEntries" />
-            <MetricsPreviewGrid :metrics="wsStore.metrics" />
+            <Transition name="fade" mode="out-in">
+              <MetricsPreviewGrid v-if="wsStore.metrics" key="metrics" :metrics="wsStore.metrics" :metriques-anormales="metriquesAnormales" />
+              <div v-else key="placeholder" class="rounded-2xl overflow-hidden">
+                <img src="../assets/aria_agent.png" alt="ARIA Agent" class="w-full object-contain rounded-2xl" />
+              </div>
+            </Transition>
+
+            <!-- Captures annotées -->
+            <Transition name="fade">
+              <div v-if="wsStore.keyFrames.length" class="grid grid-cols-2 gap-3">
+                <img
+                  v-for="(frame, i) in wsStore.keyFrames"
+                  :key="i"
+                  :src="`data:image/png;base64,${frame}`"
+                  :alt="`Capture annotée ${i + 1}`"
+                  class="w-full rounded-xl object-contain border border-outline-variant/30 shadow-sm"
+                  style="max-width: 480px"
+                />
+              </div>
+            </Transition>
           </div>
         </div>
 

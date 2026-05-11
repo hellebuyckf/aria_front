@@ -7,6 +7,8 @@ export const useWebSocketStore = defineStore('websocket', () => {
   const pct = ref(0)
   const logEntries = ref([])
   const metrics = ref(null)
+  const metriquesAnormales = ref([])
+  const keyFrames = ref([])
   const error = ref(null)
   const lastEvent = ref(null)
 
@@ -21,6 +23,8 @@ export const useWebSocketStore = defineStore('websocket', () => {
     pct.value = 0
     logEntries.value = []
     metrics.value = null
+    metriquesAnormales.value = []
+    keyFrames.value = []
     error.value = null
     lastEvent.value = null
     reconnectAttempts = 0
@@ -35,6 +39,15 @@ export const useWebSocketStore = defineStore('websocket', () => {
 
     lastEvent.value = event
 
+    // Extract metriques_anormales from wherever the backend places it
+    const anormales = event.report?.metriques_anormales
+      ?? event.metriques_anormales
+      ?? event.metrics?.metriques_anormales
+    if (anormales) metriquesAnormales.value = anormales
+
+    // Extract metrics (may arrive in any event)
+    if (event.metrics) metrics.value = event.metrics
+
     if (event.type === 'progress' || event.type === 'metrics') {
       if (event.pct !== undefined && event.pct > pct.value) {
         pct.value = event.pct
@@ -48,9 +61,6 @@ export const useWebSocketStore = defineStore('websocket', () => {
         if (logEntries.value.length > 50) {
           logEntries.value.shift()
         }
-      }
-      if (event.type === 'metrics' && event.metrics) {
-        metrics.value = event.metrics // Complete replacement, not merge
       }
     } else if (event.type === 'ready') {
       if (event.pct !== undefined) {
@@ -77,6 +87,7 @@ export const useWebSocketStore = defineStore('websocket', () => {
     } else if (event.type === 'completed') {
       pct.value = 100
       wsStatus.value = 'connected'
+      if (event.key_frames?.length) keyFrames.value = event.key_frames
     }
   }
 
@@ -158,16 +169,17 @@ export const useWebSocketStore = defineStore('websocket', () => {
       { type: 'progress', etape: 'video', pct: 30, level: 'ACTION', message: 'Extraction cinématique des points clés...' },
       { type: 'progress', etape: 'video', pct: 40, level: 'OK', message: '142 points clés extraits (8.1s)' },
       { type: 'progress', etape: 'video', pct: 55, level: 'OK', message: 'Vecteurs force calculés (5.9s)' },
-      { 
-        type: 'metrics', 
+      {
+        type: 'metrics',
         pct: 38,
         message: 'Métriques sagittales calculées',
-        metrics: { 
-          cadence: 147.5, 
-          angle_attaque_pied: 'midfoot', 
-          flexion_genou_impact: 16.8, 
-          inclinaison_tronc: null, 
-          oscillation_verticale: 2.08, 
+        metriques_anormales: ['cadence', 'flexion_genou_impact'],
+        metrics: {
+          cadence: 147.5,
+          angle_attaque_pied: 'midfoot',
+          flexion_genou_impact: 16.8,
+          inclinaison_tronc: null,
+          oscillation_verticale: 2.08,
           ratio_contact_suspension: 0.625,
           pelvic_drop: null,
           valgus_genou: null,
@@ -175,18 +187,19 @@ export const useWebSocketStore = defineStore('websocket', () => {
           oscillation_laterale_hanche: null,
           pronation_pied: null,
           vue_posterieure_disponible: false
-        } 
+        }
       },
-      { 
-        type: 'metrics', 
+      {
+        type: 'metrics',
         pct: 40,
         message: 'Métriques postérieures ajoutées',
-        metrics: { 
-          cadence: 148.2, // Value changed
-          angle_attaque_pied: 'midfoot', 
-          flexion_genou_impact: 16.8, 
-          inclinaison_tronc: 8.5, 
-          oscillation_verticale: 2.08, 
+        metriques_anormales: ['cadence', 'flexion_genou_impact', 'valgus_genou', 'pelvic_drop'],
+        metrics: {
+          cadence: 148.2,
+          angle_attaque_pied: 'midfoot',
+          flexion_genou_impact: 16.8,
+          inclinaison_tronc: 8.5,
+          oscillation_verticale: 2.08,
           ratio_contact_suspension: 0.625,
           pelvic_drop: 4.2,
           valgus_genou: 6.8,
@@ -194,7 +207,7 @@ export const useWebSocketStore = defineStore('websocket', () => {
           oscillation_laterale_hanche: 2.1,
           pronation_pied: 5.4,
           vue_posterieure_disponible: true
-        } 
+        }
       },
       { type: 'progress', etape: 'diagnostic', pct: 65, level: 'ACTION', message: 'Analyse diagnostique des pathologies...' },
       { type: 'progress', etape: 'diagnostic', pct: 75, level: 'OK', message: 'Diagnostic établi' },
@@ -202,7 +215,12 @@ export const useWebSocketStore = defineStore('websocket', () => {
       { type: 'ready', etape: 'rag', pct: 100, level: 'OK', message: 'Analyse préliminaire prête', diagnostic: { cadence: 148, pelvic_drop: 4.5 } },
       { type: 'progress', etape: 'rapport', pct: 92, level: 'INFO', message: 'Génération du protocole correctif...' },
       { type: 'progress', etape: 'rapport', pct: 98, level: 'INFO', message: 'Export du rapport final...' },
-      { type: 'completed', etape: 'rapport', pct: 100, level: 'OK', message: 'Analyse terminée avec succès.' }
+      { type: 'completed', etape: 'rapport', pct: 100, level: 'OK', message: 'Analyse terminée avec succès.', key_frames: [
+        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='
+      ]}
     ]
 
     let index = 0
@@ -225,6 +243,8 @@ export const useWebSocketStore = defineStore('websocket', () => {
     pct,
     logEntries,
     metrics,
+    metriquesAnormales,
+    keyFrames,
     error,
     lastEvent,
     reset,

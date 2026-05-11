@@ -100,7 +100,7 @@ watch(() => props.modelValue.modele, (newVal) => {
   modelSearch.value = newVal
 })
 
-const drops = [0, 4, 8, 10, 12]
+const drops = [0, 4, 5, 6, 8, 10, 12]
 const stabilities = [
   { id: 'neutre', label: 'Neutre' },
   { id: 'pronation', label: 'Pronation' },

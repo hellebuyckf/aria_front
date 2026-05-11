@@ -29,7 +29,7 @@ watch(() => props.entries.length, () => {
     
     <div 
       ref="logContainer"
-      class="bg-[#1a1a2e] border border-surface-container rounded-3xl p-6 h-[288px] overflow-y-auto font-mono text-[11px] leading-6 custom-scrollbar scroll-smooth shadow-inner"
+      class="bg-[#1a1a2e] border border-surface-container rounded-3xl p-4 h-[120px] overflow-y-auto font-mono text-[11px] leading-6 custom-scrollbar scroll-smooth shadow-inner"
     >
       <TransitionGroup name="fade">
         <LogLine 

@@ -6,6 +6,10 @@ const props = defineProps({
   metrics: {
     type: Object,
     default: null
+  },
+  metriquesAnormales: {
+    type: Array,
+    default: () => []
   }
 })
 
@@ -72,31 +76,7 @@ const showPosterior = computed(() => {
 
 const getStatus = (key, value) => {
   if (value === null) return null
-  
-  switch (key) {
-    case 'cadence':
-      if (value < 165) return 'red'
-      if (value < 175) return 'orange'
-      return 'green'
-    case 'oscillation_verticale':
-      if (value > 12) return 'red'
-      if (value > 10) return 'orange'
-      return 'green'
-    case 'inclinaison_tronc':
-      if (value > 15) return 'red'
-      if (value > 10) return 'orange'
-      return 'green'
-    case 'flexion_genou_impact':
-      if (value < 15) return 'red'
-      if (value < 20) return 'orange'
-      return 'green'
-    case 'attaque_pied':
-      if (value === 'talon_prononce') return 'red'
-      if (value === 'avant_pied') return 'orange'
-      return 'green'
-    default:
-      return null
-  }
+  return props.metriquesAnormales.includes(key) ? 'red' : null
 }
 
 const formatValue = (key, value) => {

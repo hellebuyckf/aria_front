@@ -108,7 +108,12 @@ export const useSessionStore = defineStore('session', () => {
       if (chaussure.value.marque) {
         fd.append('profil_chaussure', JSON.stringify({
           marque: chaussure.value.marque,
-          drop_mm: parseInt(chaussure.value.drop) || 0
+          modele: chaussure.value.modele || null,
+          drop_mm: parseInt(chaussure.value.drop) || 0,
+          stabilite: chaussure.value.stabilite || null,
+          amorti: chaussure.value.amorti || null,
+          poids_type: chaussure.value.poidsType || null,
+          dynamisme: chaussure.value.dynamisme || null
         }))
       }
 
