@@ -76,7 +76,10 @@ const showPosterior = computed(() => {
 
 const getStatus = (key, value) => {
   if (value === null) return null
-  return props.metriquesAnormales.includes(key) ? 'red' : null
+  const anormales = props.metriquesAnormales.length > 0
+    ? props.metriquesAnormales
+    : (props.metrics?.metriques_anormales ?? [])
+  return anormales.includes(key) ? 'red' : null
 }
 
 const formatValue = (key, value) => {
