@@ -77,8 +77,7 @@ const confidenceBadgeClass = computed(() => {
 })
 
 const handleDownload = () => {
-  const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000'
-  window.open(`${baseUrl}/api/sessions/${sessionId}/report`, '_blank')
+  window.open(`/api/sessions/${sessionId}/report`, '_blank')
 }
 
 const handleBack = () => {

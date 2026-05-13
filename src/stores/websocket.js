@@ -114,18 +114,14 @@ export const useWebSocketStore = defineStore('websocket', () => {
 
     wsStatus.value = reconnectAttempts > 0 ? 'reconnecting' : 'connecting'
     
+    const wsBase = import.meta.env.VITE_WS_URL
+      || `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.host}`
+
     let wsUrl = ''
     if (customUrl) {
-      // If backend returns a relative path like /ws/session/xxx
-      if (customUrl.startsWith('/')) {
-        const baseUrl = import.meta.env.VITE_WS_URL || 'ws://localhost:8000'
-        wsUrl = `${baseUrl}${customUrl}`
-      } else {
-        wsUrl = customUrl
-      }
+      wsUrl = customUrl.startsWith('/') ? `${wsBase}${customUrl}` : customUrl
     } else {
-      const baseUrl = import.meta.env.VITE_WS_URL || 'ws://localhost:8000'
-      wsUrl = `${baseUrl}/ws/session/${sessionId}`
+      wsUrl = `${wsBase}/ws/session/${sessionId}`
     }
     
     console.log(`Connecting to WebSocket: ${wsUrl}`)

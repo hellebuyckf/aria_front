@@ -28,7 +28,7 @@ export const useReportStore = defineStore('report', () => {
 
   async function downloadPdf(sessionId, patientId, date) {
     try {
-      const res = await api.get(`/api/sessions/${sessionId}/report/pdf`, { responseType: 'blob' })
+      const res = await api.get(`/api/sessions/${sessionId}/report`, { responseType: 'blob' })
       const url = window.URL.createObjectURL(new Blob([res.data]))
       const link = document.createElement('a')
       link.href = url

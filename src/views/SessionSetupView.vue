@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted } from 'vue'
+import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { usePatientsStore } from '../stores/patients'
 import { useSessionStore } from '../stores/session'
@@ -23,15 +23,24 @@ onMounted(() => {
   sessionStore.initialiser(patientsStore.activePatient)
 })
 
+const launching = ref(false)
+const launchError = ref('')
+
 const onLancerAnalyse = async () => {
+  launching.value = true
+  launchError.value = ''
   try {
     const sessionId = await sessionStore.lancerAnalyse()
     if (sessionId) {
       router.push(`/session/${sessionId}/analysis`)
+    } else {
+      launchError.value = 'Réponse inattendue du serveur (pas de session_id)'
     }
   } catch (e) {
-    // Error state is handled by the store (statut.value = 'erreur')
+    launchError.value = e?.response?.data?.detail ?? e?.message ?? 'Erreur réseau'
     console.error('Analyse start failed', e)
+  } finally {
+    launching.value = false
   }
 }
 
@@ -79,21 +88,26 @@ const onAnnuler = () => {
                   v-model:sagittale="sessionStore.videos.sagittale"
                   v-model:posterieure="sessionStore.videos.posterieure"
                 />
-                <div class="flex items-center justify-end gap-3">
-                  <button
-                    @click="onAnnuler"
-                    class="px-6 py-2.5 rounded-lg text-sm font-medium border border-outline-variant bg-white text-on-surface hover:bg-surface-container-low transition-all"
-                  >
-                    Annuler
-                  </button>
-                  <button
-                    @click="onLancerAnalyse"
-                    :disabled="!sessionStore.formulaireValide"
-                    class="flex items-center gap-2 px-6 py-2.5 rounded-lg bg-[#0D2B6B] text-white shadow-md hover:bg-[#091F4D] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                  >
-                    <span class="material-symbols-outlined text-lg">play_arrow</span>
-                    <span class="text-sm font-bold">Lancer l'analyse ARIA</span>
-                  </button>
+                <div class="flex flex-col items-end gap-2">
+                  <div class="flex items-center gap-3">
+                    <button
+                      @click="onAnnuler"
+                      :disabled="launching"
+                      class="px-6 py-2.5 rounded-lg text-sm font-medium border border-outline-variant bg-white text-on-surface hover:bg-surface-container-low disabled:opacity-50 transition-all"
+                    >
+                      Annuler
+                    </button>
+                    <button
+                      @click="onLancerAnalyse"
+                      :disabled="!sessionStore.formulaireValide || launching"
+                      class="flex items-center gap-2 px-6 py-2.5 rounded-lg bg-[#0D2B6B] text-white shadow-md hover:bg-[#091F4D] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                    >
+                      <span v-if="launching" class="material-symbols-outlined text-lg animate-spin">progress_activity</span>
+                      <span v-else class="material-symbols-outlined text-lg">play_arrow</span>
+                      <span class="text-sm font-bold">{{ launching ? 'Envoi en cours…' : 'Lancer l\'analyse ARIA' }}</span>
+                    </button>
+                  </div>
+                  <p v-if="launchError" class="text-xs text-red-500 font-medium">{{ launchError }}</p>
                 </div>
               </div>
             </div>
