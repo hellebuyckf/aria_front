@@ -1,8 +1,10 @@
 <script setup>
+import { useRoute } from 'vue-router'
 import { useAuthStore } from '../../stores/auth'
 import { useSessionStore } from '../../stores/session'
 import avatarUrl from '../../assets/avatar-placeholder.png'
 
+const route = useRoute()
 const auth = useAuthStore()
 const session = useSessionStore()
 
@@ -25,7 +27,7 @@ const formatDate = (isoString) => {
 <template>
   <header class="h-16 border-b border-outline-variant bg-white px-8 flex items-center justify-between">
     <div class="flex flex-col">
-      <div v-if="session.patientId" class="flex flex-col">
+      <div v-if="session.patientId && route.path !== '/patients'" class="flex flex-col">
         <h1 class="text-sm font-bold text-on-surface">
           ID Patient: {{ session.patientId }}
         </h1>

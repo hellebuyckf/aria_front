@@ -17,9 +17,7 @@ export const useWebSocketStore = defineStore('websocket', () => {
   const maxReconnectAttempts = 3
   const reconnectDelays = [1000, 2000, 4000]
 
-  function reset() {
-    connected.value = false
-    wsStatus.value = 'idle'
+  function resetData() {
     pct.value = 0
     logEntries.value = []
     metrics.value = null
@@ -27,7 +25,13 @@ export const useWebSocketStore = defineStore('websocket', () => {
     keyFrames.value = []
     error.value = null
     lastEvent.value = null
+  }
+
+  function reset() {
+    connected.value = false
+    wsStatus.value = 'idle'
     reconnectAttempts = 0
+    resetData()
     if (ws) {
       ws.close()
       ws = null
@@ -35,15 +39,25 @@ export const useWebSocketStore = defineStore('websocket', () => {
   }
 
   function handleEvent(event) {
-    if (event.type === 'ping' || event.type === 'connected') return
+    if (event.type === 'ping') return
+
+    if (event.type === 'connected') {
+      resetData()
+      return
+    }
 
     lastEvent.value = event
+
+    if (event.type === 'metrics_alert') {
+      metriquesAnormales.value = event.metriques_anormales ?? []
+      return
+    }
 
     // Extract metriques_anormales from wherever the backend places it
     const anormales = event.report?.metriques_anormales
       ?? event.metriques_anormales
       ?? event.metrics?.metriques_anormales
-    if (anormales) metriquesAnormales.value = anormales
+    if (anormales != null) metriquesAnormales.value = anormales
 
     // Extract metrics (may arrive in any event)
     if (event.metrics) metrics.value = event.metrics
@@ -92,8 +106,12 @@ export const useWebSocketStore = defineStore('websocket', () => {
   }
 
   function connect(sessionId, customUrl = null) {
-    if (ws) ws.close()
-    
+    if (reconnectAttempts === 0) resetData()
+    if (ws) {
+      ws.onclose = null
+      ws.close()
+    }
+
     wsStatus.value = reconnectAttempts > 0 ? 'reconnecting' : 'connecting'
     
     let wsUrl = ''
@@ -155,7 +173,10 @@ export const useWebSocketStore = defineStore('websocket', () => {
   }
 
   function disconnect() {
-    if (ws) ws.close()
+    if (ws) {
+      ws.onclose = null
+      ws.close()
+    }
     reset()
   }
 
@@ -209,6 +230,7 @@ export const useWebSocketStore = defineStore('websocket', () => {
           vue_posterieure_disponible: true
         }
       },
+      { type: 'metrics_alert', metriques_anormales: ['cadence', 'flexion_genou_impact', 'valgus_genou', 'pelvic_drop'] },
       { type: 'progress', etape: 'diagnostic', pct: 65, level: 'ACTION', message: 'Analyse diagnostique des pathologies...' },
       { type: 'progress', etape: 'diagnostic', pct: 75, level: 'OK', message: 'Diagnostic établi' },
       { type: 'progress', etape: 'rag', pct: 85, level: 'ACTION', message: 'Recherche bibliographique PubMed...' },

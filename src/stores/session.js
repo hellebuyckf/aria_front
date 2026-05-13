@@ -56,6 +56,7 @@ export const useSessionStore = defineStore('session', () => {
     patientId.value = patient.id
     profil.value = { ...patient.profil }
     horodatage.value = new Date().toISOString()
+    videos.value = { sagittale: null, posterieure: null }
   }
 
   function updateProfil(data) {
