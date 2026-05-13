@@ -1,6 +1,72 @@
-# Vue 3 + Vite
+# aria_front — Interface praticien ARIA
 
-This template should help get you started developing with Vue 3 in Vite. The template uses Vue 3 `<script setup>` SFCs, check out the [script setup docs](https://v3.vuejs.org/api/sfc-script-setup.html#sfc-script-setup) to learn more.
+Interface web du système ARIA. SPA Vue 3 servie par nginx sur alpha-server (port 3000).
 
-Learn more about IDE Support for Vue in the [Vue Docs Scaling up Guide](https://vuejs.org/guide/scaling-up/tooling.html#ide-support).
-# aria_front
+---
+
+## Stack
+
+| Composant | Technologie |
+|---|---|
+| Framework | Vue 3 + Vite |
+| Routeur | Vue Router 4 |
+| State management | Pinia |
+| Styles | Tailwind CSS 4 |
+| HTTP | Axios |
+| Serving prod | nginx (Docker) |
+
+---
+
+## Démarrage
+
+```zsh
+# Développement (hot-reload)
+npm install
+npm run dev       # http://localhost:5173
+
+# Build production
+npm run build
+
+# Preview build
+npm run preview
+```
+
+Via Docker (stack complète) :
+
+```zsh
+# Depuis la racine du monorepo
+make up-front
+```
+
+---
+
+## Connexions
+
+| Service | URL (Docker) | Description |
+|---|---|---|
+| `aria_middle` | `http://aria_middle:8000` | API REST + WebSocket |
+
+En développement local, configurer le proxy Vite dans `vite.config.js` pour pointer sur `http://localhost:8000`.
+
+---
+
+## Structure
+
+```
+aria_front/
+├── src/
+│   ├── main.js
+│   ├── App.vue
+│   ├── router/
+│   ├── stores/          ← Pinia stores
+│   ├── views/           ← Pages Vue Router
+│   └── components/
+├── public/
+├── nginx.conf           ← Config nginx prod
+├── Dockerfile
+└── vite.config.js
+```
+
+---
+
+*ARIA MVP v2.0 · PFE IA & Santé 2025-2026 · François Hellebuyck*
